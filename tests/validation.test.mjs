@@ -53,3 +53,21 @@ test("actions have bounded inputs and known roles", () => {
     "Enter",
   );
 });
+
+test("mapping validation rejects unsafe or ambiguous configuration", async () => {
+  const { validateMappings } = await import("../server/validation.mjs");
+  const valid = {
+    lane: 1,
+    source: { role: "button", name: "Save" },
+    target: { role: "button", name: "Submit" },
+  };
+  assert.deepEqual(validateMappings([valid]), [valid]);
+  for (const bad of [
+    null,
+    Array(101).fill(valid),
+    [{ ...valid, lane: 3 }],
+    [{ ...valid, target: { role: "textbox", name: "Submit" } }],
+    [{ ...valid, source: { role: "button", name: "" } }],
+  ])
+    assert.throws(() => validateMappings(bad));
+});

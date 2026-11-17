@@ -4,6 +4,7 @@ import {
   localUrl,
   validateAction,
   validateTargets,
+  validateMappings,
 } from "./validation.mjs";
 
 // This function runs inside the inspected app, without access to the controller.
@@ -93,10 +94,14 @@ export class AuditionEngine {
     this.viewport = "desktop";
     this.busy = false;
     this.browser = null;
+    this.mappings = [];
   }
   async exclusive(operation) {
     if (this.busy)
-      throw new Error("Another action is running. Wait for it to finish.");
+      throw Object.assign(
+        new Error("Another action is running. Wait for it to finish."),
+        { status: 409 },
+      );
     this.busy = true;
     try {
       return await operation();
@@ -104,14 +109,23 @@ export class AuditionEngine {
       this.busy = false;
     }
   }
-  async connect(targets) {
+  async connect(targets, mappings = []) {
     const validated = validateTargets(targets, this.port);
+    mappings = validateMappings(mappings);
+    if (mappings.some((m) => m.lane >= validated.length))
+      throw new Error("Mapping preview does not exist.");
+    const mappingKeys = mappings.map((m) =>
+      JSON.stringify([m.lane, m.source.role, m.source.name]),
+    );
+    if (new Set(mappingKeys).size !== mappingKeys.length)
+      throw new Error("Only one mapping per control and preview is allowed.");
     return this.exclusive(async () => {
-      await this.closeLanes();
-      if (!this.browser)
+      const previousLanes = this.lanes;
+      const previousMappings = this.mappings;
+      if (!this.browser?.isConnected())
         this.browser = await chromium.launch({ headless: true });
-      this.events = [];
-      this.eventSequence = 0;
+      this.lanes = [];
+      this.mappings = mappings;
       try {
         for (const target of validated) {
           const context = await this.browser.newContext({
@@ -151,10 +165,15 @@ export class AuditionEngine {
         }
       } catch (error) {
         await this.closeLanes();
+        this.lanes = previousLanes;
+        this.mappings = previousMappings;
         throw new Error(
           `Could not connect all previews. ${error.message.split("\n")[0]}`,
         );
       }
+      await Promise.allSettled(previousLanes.map((l) => l.context.close()));
+      this.events = [];
+      this.eventSequence = 0;
       return this.snapshot();
     });
   }
@@ -211,6 +230,7 @@ export class AuditionEngine {
     return {
       lanes,
       events: this.events,
+      mappings: this.mappings,
       viewport: this.viewport,
       dimensions: VIEWPORTS[this.viewport],
     };
@@ -242,15 +262,22 @@ export class AuditionEngine {
     if (!this.lanes.length) throw new Error("Connect app previews first.");
     return this.exclusive(async () => {
       const outcomes = await Promise.all(
-        this.lanes.map(async (lane) => {
+        this.lanes.map(async (lane, index) => {
+          const mapped = this.mappings.find(
+            (m) =>
+              m.lane === index &&
+              m.source.role === action.target?.role &&
+              m.source.name === action.target?.name,
+          );
+          const target = mapped?.target || action.target;
           try {
             if (action.kind === "scroll")
               await lane.page.mouse.wheel(0, action.direction * 500);
             else if (action.kind === "press")
               await lane.page.keyboard.press(action.value);
             else {
-              const locator = lane.page.getByRole(action.target.role, {
-                name: action.target.name,
+              const locator = lane.page.getByRole(target.role, {
+                name: target.name,
                 exact: true,
               });
               const count = await locator.count();
@@ -258,7 +285,7 @@ export class AuditionEngine {
                 throw new Error(
                   count
                     ? `${count} matching controls; add unique accessible names.`
-                    : `No ${action.target.role} named “${action.target.name}”.`,
+                    : `No ${target.role} named “${target.name}”.`,
                 );
               if (action.kind === "fill") await locator.fill(action.value);
               else if (action.kind === "select")
@@ -271,7 +298,13 @@ export class AuditionEngine {
             lane.status = "mismatch";
             lane.detail = error.message.split("\n")[0].slice(0, 240);
           }
-          return { name: lane.name, status: lane.status, detail: lane.detail };
+          return {
+            name: lane.name,
+            status: lane.status,
+            detail: lane.detail,
+            target,
+            mapped: !!mapped,
+          };
         }),
       );
       this.events.push({
@@ -297,7 +330,24 @@ export class AuditionEngine {
   }
   async reset() {
     if (!this.lanes.length) throw new Error("Connect app previews first.");
-    return this.connect(this.lanes.map(({ name, url }) => ({ name, url })));
+    return this.connect(
+      this.lanes.map(({ name, url }) => ({ name, url })),
+      this.mappings,
+    );
+  }
+  async setMappings(raw) {
+    const mappings = validateMappings(raw);
+    return this.exclusive(async () => {
+      if (mappings.some((m) => !this.lanes[m.lane]))
+        throw new Error("Connect the mapped previews first.");
+      const keys = mappings.map((m) =>
+        JSON.stringify([m.lane, m.source.role, m.source.name]),
+      );
+      if (new Set(keys).size !== keys.length)
+        throw new Error("Only one mapping per control and preview is allowed.");
+      this.mappings = mappings;
+      return this.snapshot();
+    });
   }
   report() {
     return {
@@ -307,6 +357,7 @@ export class AuditionEngine {
       viewport: this.viewport,
       targets: this.lanes.map(({ name, url }) => ({ name, url })),
       events: this.events,
+      mappings: this.mappings,
       notice:
         "Actions are observed attempts, not assertions of application correctness. Screenshots and typed values may contain private data. Reset clears browser state only, not application databases.",
     };

@@ -71,11 +71,11 @@ export async function startServer(port = 4321) {
           return;
         }
         if (req.method === "GET" && url.pathname === "/api/session") {
-          json(200, await engine.snapshot());
+          json(200, await engine.exclusive(() => engine.snapshot()));
           return;
         }
         if (req.method === "GET" && url.pathname === "/api/report") {
-          json(200, engine.report());
+          json(200, await engine.exclusive(() => engine.report()));
           return;
         }
         if (req.method !== "POST") {
@@ -84,7 +84,11 @@ export async function startServer(port = 4321) {
         }
         const data = await body(req);
         if (url.pathname === "/api/connect") {
-          json(200, await engine.connect(data.targets));
+          json(200, await engine.connect(data.targets, data.mappings || []));
+          return;
+        }
+        if (url.pathname === "/api/mappings") {
+          json(200, await engine.setMappings(data.mappings));
           return;
         }
         if (url.pathname === "/api/action") {
@@ -92,7 +96,7 @@ export async function startServer(port = 4321) {
           return;
         }
         if (url.pathname === "/api/hit-test") {
-          json(200, await engine.hitTest(data));
+          json(200, await engine.exclusive(() => engine.hitTest(data)));
           return;
         }
         if (url.pathname === "/api/viewport") {
@@ -104,8 +108,13 @@ export async function startServer(port = 4321) {
           return;
         }
         if (url.pathname === "/api/disconnect") {
-          await engine.exclusive(() => engine.closeLanes());
-          json(200, await engine.snapshot());
+          json(
+            200,
+            await engine.exclusive(async () => {
+              await engine.closeLanes();
+              return engine.snapshot();
+            }),
+          );
           return;
         }
         json(404, { error: "Unknown endpoint." });
@@ -145,7 +154,7 @@ export async function startServer(port = 4321) {
       res.end(content);
     } catch (error) {
       if (!res.headersSent)
-        json(error.code === "ENOENT" ? 404 : 400, {
+        json(error.code === "ENOENT" ? 404 : error.status || 400, {
           error:
             error.code === "ENOENT"
               ? "Run npm run build before starting Audition."

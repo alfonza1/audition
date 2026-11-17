@@ -788,3 +788,29 @@ footer button {
     transition: none !important;
   }
 }
+
+.mapping-panel {
+  margin: 18px 0;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #d7e1de;
+  border-radius: 8px;
+}
+.mapping-panel label {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 18px 8px 0;
+  max-width: 100%;
+}
+.mapping-panel select {
+  max-width: 100%;
+  padding: 8px;
+}
+.mapping-panel p {
+  font-size: 13px;
+  color: #526763;
+}
+.title-actions {
+  flex-wrap: wrap;
+}

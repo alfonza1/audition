@@ -104,6 +104,47 @@ test("real browser comparison: external apps, matching, mismatches, mobile and r
     assert.equal((await call("hit-test", { lane: 9, x: 1, y: 1 })).status, 400);
     const report = await call("report");
     assert.equal(report.data.events.length, 3);
+    let releaseOperation;
+    const heldOperation = app.engine.exclusive(
+      () =>
+        new Promise((resolve) => {
+          releaseOperation = resolve;
+        }),
+    );
+    assert.equal((await call("session")).status, 409);
+    assert.equal((await call("reset", {})).status, 409);
+    releaseOperation();
+    await heldOperation;
+    const before = app.engine.lanes;
+    assert.equal(
+      (
+        await call("connect", {
+          targets: [
+            { url: "http://127.0.0.1:1" },
+            { url: base + "/fixtures/a" },
+          ],
+        })
+      ).status,
+      400,
+    );
+    assert.equal(app.engine.lanes, before);
+    assert.equal((await call("report")).data.events.length, 3);
+    const mapping = {
+      lane: 2,
+      source: { role: "button", name: "Clear completed" },
+      target: { role: "button", name: "Archive completed" },
+    };
+    assert.equal(
+      (await call("mappings", { mappings: [mapping, mapping] })).status,
+      400,
+    );
+    assert.equal((await call("mappings", { mappings: [mapping] })).status, 200);
+    const mapped = await call("action", {
+      kind: "click",
+      target: mapping.source,
+    });
+    assert.equal(mapped.data.lanes[2].status, "matched");
+    assert.equal(mapped.data.events.at(-1).outcomes[2].mapped, true);
     await call("reset", {});
     assert.equal(
       await app.engine.lanes[1].page.evaluate(() =>
@@ -116,6 +157,7 @@ test("real browser comparison: external apps, matching, mismatches, mobile and r
       2,
     );
     assert.equal((await call("report")).data.events.length, 0);
+    assert.equal((await call("session")).data.mappings.length, 1);
     await app.engine.lanes[0].page.evaluate(() => {
       const clone = document.querySelector("button").cloneNode(true);
       document.body.append(clone);
@@ -132,6 +174,9 @@ test("real browser comparison: external apps, matching, mismatches, mobile and r
     await assert.rejects(
       app.engine.lanes[1].page.goto(base + "/api/session", { timeout: 3000 }),
     );
+    await app.engine.browser.close();
+    assert.equal((await call("reset", {})).status, 200);
+    assert.ok(app.engine.lanes.every((l) => !l.page.isClosed()));
     await call("disconnect", {});
     assert.equal((await call("session")).data.lanes.length, 0);
   } finally {
@@ -185,6 +230,44 @@ test("desktop and mobile product flow, accessible controls and export", async ()
       .fill(
         "Keep the first layout. Resolve the clear-button mismatch in Taskline.",
       );
+    await page.getByRole("button", { name: "Save draft", exact: true }).click();
+    await page.reload();
+    await page
+      .getByRole("button", { name: "Restore draft", exact: true })
+      .click();
+    await page
+      .getByText("Draft restored with fresh browsers.", { exact: false })
+      .waitFor();
+    assert.match(
+      await page
+        .getByLabel("What should the next iteration keep or change?")
+        .inputValue(),
+      /Keep the first/,
+    );
+    await page
+      .getByLabel("Control from first preview")
+      .selectOption({ label: "button · Clear completed" });
+    await page.locator(".mapping-panel summary").click();
+    await page
+      .getByLabel("Map control in Taskline")
+      .selectOption({ label: "Archive completed" });
+    await page.waitForFunction(() => !document.querySelector(".busy"));
+    await page.getByRole("button", { name: "Click in all →" }).click();
+    await page.waitForFunction(() => !document.querySelector(".busy"));
+    assert.ok(app.engine.lanes.every((l) => l.status === "matched"));
+    await page.getByRole("button", { name: "Save draft", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Restore draft", exact: true })
+      .click();
+    await page
+      .getByText("Draft restored with fresh browsers.", { exact: false })
+      .waitFor();
+    assert.equal(app.engine.mappings.length, 1);
+    await page
+      .getByLabel("Control from first preview")
+      .selectOption({ label: "button · Clear completed" });
+    await page.getByRole("button", { name: "Click in all →" }).click();
+    await page.waitForFunction(() => !document.querySelector(".busy"));
     await mkdir("docs/images", { recursive: true });
     await page.screenshot({
       path: "docs/images/workspace.png",
@@ -207,6 +290,31 @@ test("desktop and mobile product flow, accessible controls and export", async ()
     );
     await mkdir("artifacts", { recursive: true });
     await page.screenshot({ path: "artifacts/mobile.png", fullPage: true });
+    await page.evaluate(() => {
+      const draft = JSON.parse(localStorage.getItem("audition-draft-v1"));
+      draft.targets[0].url = "https://example.com";
+      localStorage.setItem("audition-draft-v1", JSON.stringify(draft));
+    });
+    await page
+      .getByRole("button", { name: "Restore draft", exact: true })
+      .click();
+    await page
+      .getByRole("alert")
+      .filter({ hasText: "Only localhost" })
+      .waitFor();
+    assert.equal(app.engine.lanes.length, 3);
+    assert.equal(app.engine.mappings.length, 1);
+    await page
+      .getByRole("button", { name: "Forget draft", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Restore draft", exact: true })
+      .click();
+    await page
+      .getByRole("alert")
+      .filter({ hasText: "No saved draft" })
+      .waitFor();
+    assert.equal(app.engine.lanes.length, 3);
     assert.deepEqual(errors, []);
   } finally {
     await browser.close();

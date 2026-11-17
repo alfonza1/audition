@@ -32,6 +32,8 @@ export function localUrl(raw, controlPort) {
 export function validateTargets(targets, port) {
   if (!Array.isArray(targets) || targets.length < 2 || targets.length > 3)
     throw new Error("Connect two or three app URLs.");
+  if (targets.some((target) => !target || typeof target !== "object"))
+    throw new Error("Each preview needs a URL.");
   return targets.map((target, index) => ({
     name:
       typeof target.name === "string"
@@ -88,4 +90,33 @@ export function validateAction(action) {
       throw new Error("Choose a supported named control.");
   }
   return action;
+}
+
+export function validateMappings(raw) {
+  if (!Array.isArray(raw) || raw.length > 100)
+    throw new Error("Use at most 100 control mappings.");
+  return raw.map((mapping) => {
+    if (
+      !mapping ||
+      !Number.isInteger(mapping.lane) ||
+      mapping.lane < 0 ||
+      mapping.lane > 2
+    )
+      throw new Error("Choose a valid preview for each mapping.");
+    const source = validateAction({
+      kind: "click",
+      target: mapping.source,
+    }).target;
+    const target = validateAction({
+      kind: "click",
+      target: mapping.target,
+    }).target;
+    if (source.role !== target.role)
+      throw new Error("Mapped controls must have the same role.");
+    return {
+      lane: mapping.lane,
+      source: { role: source.role, name: source.name },
+      target: { role: target.role, name: target.name },
+    };
+  });
 }
