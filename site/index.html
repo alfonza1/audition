@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="description"
+      content="Audition competing agent-built apps side by side. One semantic action, every implementation. Free, local, open source."
+    />
+    <title>Audition — choose by using</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f3f6f5;
+        color: #173f43;
+        font:
+          16px "Segoe UI",
+          Arial,
+          sans-serif;
+      }
+      header,
+      main,
+      footer {
+        max-width: 1180px;
+        margin: auto;
+        padding: 28px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      header strong {
+        font:
+          700 28px "Trebuchet MS",
+          sans-serif;
+        letter-spacing: -1px;
+      }
+      a {
+        color: inherit;
+      }
+      header a {
+        font-size: 13px;
+      }
+      h1 {
+        font:
+          600 clamp(38px, 6vw, 72px) "Trebuchet MS",
+          sans-serif;
+        letter-spacing: -3px;
+        line-height: 1.05;
+        max-width: 760px;
+        margin: 25px 0;
+      }
+      p {
+        line-height: 1.8;
+        color: #5f7776;
+        max-width: 740px;
+      }
+      .eyebrow {
+        font:
+          11px Consolas,
+          monospace;
+        letter-spacing: 2px;
+        color: #618579;
+      }
+      .buttons {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin: 26px 0;
+      }
+      .buttons a {
+        padding: 13px 20px;
+        border: 1px solid #c5d4cd;
+        border-radius: 7px;
+        text-decoration: none;
+        font-size: 14px;
+      }
+      .buttons a:first-child {
+        background: #173f43;
+        color: white;
+      }
+      .frame {
+        margin: 40px 0 20px;
+        border: 1px solid #cfddd5;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 18px 60px #173f4310;
+      }
+      .frame img {
+        display: block;
+        width: 100%;
+      }
+      .caption {
+        font-size: 12px;
+      }
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 30px;
+        margin: 45px 0;
+      }
+      .steps h2 {
+        font-size: 18px;
+      }
+      .steps p {
+        font-size: 14px;
+      }
+      pre {
+        background: #173f43;
+        color: #d8eee3;
+        padding: 24px;
+        border-radius: 9px;
+        overflow: auto;
+        line-height: 1.8;
+        font-size: 13px;
+      }
+      .note {
+        font-size: 13px;
+      }
+      footer {
+        border-top: 1px solid #d5e0da;
+        font-size: 12px;
+        color: #647d6e;
+        display: flex;
+        justify-content: space-between;
+      }
+      a:focus-visible {
+        outline: 3px solid #bb8529;
+        outline-offset: 5px;
+      }
+      @media (max-width: 700px) {
+        header,
+        main,
+        footer {
+          padding: 20px;
+        }
+        .steps {
+          grid-template-columns: 1fr;
+          gap: 5px;
+        }
+        h1 {
+          letter-spacing: -1.5px;
+        }
+        .frame {
+          margin-top: 25px;
+        }
+        footer {
+          flex-direction: column;
+          gap: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>▥ audition</strong
+      ><a href="https://github.com/alfonza1/audition"
+        >Open source on GitHub ↗</a
+      >
+    </header>
+    <main>
+      <p class="eyebrow">PARALLEL APP REVIEW / LOCAL FIRST</p>
+      <h1>Three agents built it.<br />Which one feels right?</h1>
+      <p>
+        Operate competing implementations with one set of actions. Audition
+        opens isolated browsers, matches named controls, and shows you where the
+        experiences diverge.
+      </p>
+      <div class="buttons">
+        <a href="#start">Run it locally →</a
+        ><a href="https://github.com/alfonza1/audition"
+          >Explore the repository</a
+        >
+      </div>
+      <div class="frame">
+        <img
+          src="workspace.png"
+          alt="Real Audition screenshot: three task-board apps receive the same action; the third reports a missing control."
+          width="1512"
+          height="1301"
+        />
+      </div>
+      <p class="caption">
+        Actual application capture. Taskline deliberately uses a different
+        button name, making its mismatch visible.
+      </p>
+      <div class="steps">
+        <section>
+          <h2>Connect your branches</h2>
+          <p>
+            Bring two or three running localhost apps. Each gets its own clean
+            browser context.
+          </p>
+        </section>
+        <section>
+          <h2>Try the same interaction</h2>
+          <p>
+            Fill a field, click a button, switch to mobile. Exact role and name
+            matching keeps differences honest.
+          </p>
+        </section>
+        <section>
+          <h2>Give useful feedback</h2>
+          <p>
+            Choose a variant and export your verdict with the observed action
+            outcomes.
+          </p>
+        </section>
+      </div>
+      <h2 id="start">Start with three working examples</h2>
+      <pre>
+git clone https://github.com/alfonza1/audition.git
+cd audition
+npm ci
+npx playwright install chromium
+npm run dev</pre>
+      <p>
+        Open <strong>http://127.0.0.1:4321</strong> and choose
+        <strong>Open the live demo</strong>. Node.js 22.12+ required. On Linux,
+        install browser dependencies with
+        <code>npx playwright install --with-deps chromium</code>.
+      </p>
+      <p class="note">
+        This page is the project introduction, not a hosted controller. Real app
+        comparison runs on your computer. No API keys, model subscription,
+        account, or paid service. Only loopback apps are supported; external
+        requests and WebSockets are blocked. Browser reset does not reset app
+        databases.
+      </p>
+    </main>
+    <footer>
+      <span>Audition · MIT license · v0.1.0</span
+      ><a
+        href="https://github.com/alfonza1/audition/blob/feat/initial-release/SECURITY.md"
+        >Security and limitations</a
+      >
+    </footer>
+  </body>
+</html>
