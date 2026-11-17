@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- Standalone HTML reviews with final screenshots, reviewer choice, notes and per-variant action evidence.
+- Private content excluded by default, with explicit opt-in for screenshots, URLs, names and typed values.
+- Script-free, escaped exports with restrictive content security policy and print/mobile layouts.
+- Public example review generated from real fixture apps; streamlined empty-state copy.
+
 ## 0.2.0
 
 - Bound renderer operations and close frozen contexts before releasing session locks.

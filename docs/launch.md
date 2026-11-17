@@ -4,14 +4,12 @@ Confirm the repository and project-page links are public before posting. These a
 
 ## X post
 
-Three coding agents built the same feature. Which version would you actually use?
+Three agents built the same feature. Which one should ship?
 
-Audition lets you try all three together: one action, isolated browsers, visible mismatches.
+Audition lets you try all three together, then send a single HTML review with screenshots and action evidence. Private content is opt-in.
 
-Local, open source, no API key.
+Local + open source. Try it:
 https://github.com/alfonza1/audition
-
-Try it and tell me what breaks.
 
 ## Optional thread
 

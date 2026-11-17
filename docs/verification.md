@@ -26,3 +26,7 @@ CI is configured for Windows and Linux. Local execution alone does not establish
 Added integration assertions for held-operation HTTP 409 responses, failed reconnect preserving lane identity and journal, invalid duplicate mappings, real mapped actions, mapping retention after reset, Chromium process restart recovery, browser draft save/reload/restore/delete, mobile mapping layout and missing-draft errors. The UI uses a synchronous request guard and locks startup until recovery completes. Code review inspected mapping input bounds, draft privacy, rollback behavior and atomic API operations; no blocking findings remain.
 
 A third browser integration test deliberately freezes Chromium renderers with an infinite JavaScript loop. It verifies bounded screenshot hit testing, action discovery and snapshot capture, closed affected contexts, released operation locks and successful reset recovery. Mapped screenshot clicks resolve to the shared source; ambiguous inverse mappings fail explicitly. The regression uses a 400ms deadline while production defaults to 5 seconds.
+
+### 0.3 visual review export
+
+Unit tests verify default removal of all private fields, HTML escaping and non-JPEG image rejection. The real browser workflow downloads both redacted and private files, inspects their content, renders the private export, verifies three loaded screenshots and action evidence, confirms no scripts or network requests, and checks the exported page at 390px. A real capture is saved to docs/images/visual-review.png; site/example-review.html uses only bundled fixtures.

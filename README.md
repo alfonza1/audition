@@ -46,7 +46,7 @@ The matching key is an exact **role + accessible name**. One match is required. 
 
 App navigation through matched links works within supported localhost origins. Each preview has independent cookies and local storage; existing browser profiles and sign-in sessions are never used.
 
-## What works in 0.2
+## What works in 0.3
 
 - Two or three isolated local app previews, captured after each action.
 - Named buttons, links, textboxes, checkboxes, radios, switches, and select controls.
@@ -55,6 +55,14 @@ App navigation through matched links works within supported localhost origins. E
 - Explicit per-preview match/mismatch outcomes and a 100-event journal.
 - Browser-state reset, variant selection, feedback, and JSON review export.
 - Real local fixture apps for an immediate demo.
+
+## Send a visual review without an account
+
+Select **Export visual review** under your verdict to download a single HTML file. Anyone can open it in a browser without Audition, a server or a login. It includes your selection, per-implementation action outcomes and mapped-control evidence. Print it to PDF using the browser if needed.
+
+Private content is **off by default**: app names, URLs, control labels, typed values, notes and screenshots are omitted. Explicitly select **Include private content in visual review** to embed final screenshots and the full human review. Inspect that file before sharing—images can contain secrets or personal information. This option does not change the existing full JSON export.
+
+[Open a real example review](https://alfonza1.github.io/audition/example-review.html) generated from the three bundled fixture apps. Screenshots show only the final captured state; the journal contains the most recent 100 action attempts, not a screenshot history or correctness proof. HTML exports contain no scripts, external resources or tracking.
 
 ## Map different labels and resume a review
 
