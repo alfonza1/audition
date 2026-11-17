@@ -28,4 +28,12 @@ Lead with the working local demo and README screenshot. Explain the semantic mat
 
 ## Community approach
 
-Share a short real recording in communities discussing parallel coding agents or frontend tooling. For r/SideProject, explain the concrete workflow and ask for feedback; for r/opensource, emphasize source, license, and contribution opportunities. Check each community's current self-promotion and posting rules immediately before submitting. Do not cross-post identical pitches or contact people unsolicited.
+Share a short real recording in communities discussing parallel coding agents or frontend tooling. Explain the concrete workflow and ask for feedback on semantic mismatches. Do not cross-post identical pitches or contact people unsolicited.
+
+Rules research on November 17, 2026:
+
+- **r/LLMDevs:** relevant to comparing agent-generated applications. Its [moderator announcement](https://www.reddit.com/r/LLMDevs/comments/1mvuw5x/community_rule_update_clarifying_our/) permits free open-source projects without advance approval, prohibits commercial promotion, and forbids disguised advertising. Disclose authorship and focus on the engineering workflow; check current rules again before posting.
+- **r/SideProject:** a possible feedback audience. The [official rules endpoint](https://www.reddit.com/r/SideProject/about/rules/) did not expose its rule text to the research client. Check sidebar and submission instructions before sharing; this is not confirmed unrestricted promotion permission.
+- **r/opensource:** excluded. [Recent reporting](https://www.tomshardware.com/tech-industry/artificial-intelligence/reddits-r-opensource-bans-ai-made-and-ai-focused-projects-also-bans-non-english-speakers-sweeping-new-rules-spark-backlash-over-linux-kernel-contributions-and-solo-developers) describes restrictions on AI-assisted and new solo projects; the official endpoint did not expose the full policy for independent verification.
+
+The [Show HN guidelines](https://news.ycombinator.com/showhn.html) require something people can try and discourage quickly generated one-offs. The maintainer should use Audition on a real project and be available to explain choices and limitations before submitting. Link the runnable repository rather than the static introduction, and never solicit votes.
