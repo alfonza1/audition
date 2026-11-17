@@ -4,7 +4,7 @@
 
 Audition lets you operate two or three local web apps side by side. Fill a named field, click a button, or switch to mobile once. Each app gets the equivalent action in an isolated Chromium browser. Missing or ambiguous controls are reported honestly, so a mismatch becomes useful feedback.
 
-![Audition comparing three real task-board implementations and reporting a missing control](docs/images/workspace.png)
+![Audition comparing three real task-board implementations with explicit control mappings](docs/images/workspace.png)
 
 [Project page](https://alfonza1.github.io/audition/) · [Architecture](docs/architecture.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
@@ -34,7 +34,7 @@ These are real browser actions, not coordinated mock animations. The fixtures ar
 
 ## Compare your own branches
 
-Start each branch's dev server on a different port, then connect their URLs in Audition. The apps need shared accessible names for equivalent controls:
+Start each branch's dev server on a different port, then connect their URLs in Audition. The apps can share accessible names for equivalent controls, or use explicit per-preview mappings:
 
 ```tsx
 <label htmlFor="title">Task title</label>
@@ -46,7 +46,7 @@ The matching key is an exact **role + accessible name**. One match is required. 
 
 App navigation through matched links works within supported localhost origins. Each preview has independent cookies and local storage; existing browser profiles and sign-in sessions are never used.
 
-## What works in 0.1
+## What works in 0.2
 
 - Two or three isolated local app previews, captured after each action.
 - Named buttons, links, textboxes, checkboxes, radios, switches, and select controls.
@@ -55,6 +55,14 @@ App navigation through matched links works within supported localhost origins. E
 - Explicit per-preview match/mismatch outcomes and a 100-event journal.
 - Browser-state reset, variant selection, feedback, and JSON review export.
 - Real local fixture apps for an immediate demo.
+
+## Map different labels and resume a review
+
+Select **button · Clear completed**, open **Control mappings**, and set Taskline to **Archive completed**. The next click uses that exact control in Taskline and the original name elsewhere. Only controls with the same role can be mapped; missing or duplicate matches still fail visibly. Mappings appear in exported reviews and survive browser reset.
+
+**Save draft** stores the connected URLs, notes, selected variant and mappings in this browser's local storage. **Restore draft** validates the URLs and mappings again, opens fresh browser contexts, and restores the review notes. It does not replay actions, restore cookies or recover database state. **Forget draft** removes the saved copy. Drafts are opt-in and contain local URLs/notes, but never the typed action journal. They persist across server restarts when the controller URL/port stays the same.
+
+A failed connection preserves the current working previews and journal. A disconnected Chromium process can be recovered with **Reset browsers**. Concurrent requests return HTTP 409 instead of interleaving mutations; refresh a second tab after the active action finishes.
 
 ## Deliberate boundaries
 
@@ -89,6 +97,6 @@ Worktree managers handle development orchestration; BrowserSync synchronizes bro
 
 ## Roadmap
 
-Explicit per-variant control mappings, saved journeys, application-provided reset hooks, and optional tightly scoped network allowlists. No automatic source merging is promised.
+Saved journeys, application-provided reset hooks, and optional tightly scoped network allowlists. No automatic source merging is promised.
 
 MIT licensed. See [CHANGELOG](CHANGELOG.md) for versioned release notes.

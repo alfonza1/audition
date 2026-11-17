@@ -1,6 +1,6 @@
 {
   "name": "@alfonza1/audition",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Audition competing app implementations with synchronized semantic actions.",
   "type": "module",

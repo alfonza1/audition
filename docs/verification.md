@@ -20,3 +20,7 @@ Verified behaviors:
 Review traced URL validation, HTTP Host/Origin checks, body limits, Chromium request routes, action validation, context cleanup, and exports. Limitations are explicit in the README and architecture document. The tool is for trusted local apps, not hostile-workload containment. Chromium isolation is not a substitute for an OS security boundary.
 
 CI is configured for Windows and Linux. Local execution alone does not establish a Linux CI result; consult the repository's Actions page for the actual run.
+
+### 0.2 verification
+
+Added integration assertions for held-operation HTTP 409 responses, failed reconnect preserving lane identity and journal, invalid duplicate mappings, real mapped actions, mapping retention after reset, Chromium process restart recovery, browser draft save/reload/restore/delete, mobile mapping layout and missing-draft errors. The UI uses a synchronous request guard and locks startup until recovery completes. Code review inspected mapping input bounds, draft privacy, rollback behavior and atomic API operations; no blocking findings remain.

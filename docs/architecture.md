@@ -40,3 +40,9 @@ These controls reduce unintended access; they are not an OS-level containment bo
 ## Deployment
 
 The controller is not intended for public hosting. `site/` is a static introduction with a real captured screenshot and installation instructions. GitHub Pages can publish that site; it cannot run Chromium or control localhost app sessions. No third-party analytics or paid resources are used.
+
+## 0.2 recovery and mappings
+
+The engine serializes all API browser operations with an exclusive guard. Requests during an operation receive 409; no unbounded task queue is retained. Reconnect prepares replacement contexts before closing the old set, briefly allowing at most six contexts. Failed navigation disposes only replacements and preserves prior journal/mappings. Reset preserves mappings and replaces contexts; a disconnected browser process is relaunched.
+
+Mappings are explicit role/name pairs per lane, bounded to 100, with same-role and duplicate-key validation. Evidence records the actual resolved target and whether it was mapped. Browser-local drafts hold configuration and human review notes only, not page storage, action values or screenshots. Restore passes through server URL/mapping validation before replacing the active session. Drafts are scoped to the controller origin and persisted only by user request.
