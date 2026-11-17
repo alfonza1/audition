@@ -321,3 +321,87 @@ test("desktop and mobile product flow, accessible controls and export", async ()
     await app.close();
   }
 });
+
+test("frozen renderers release exclusive operations and mapped screenshot hits resolve their source", async () => {
+  const app = await startServer(0);
+  const base = `http://127.0.0.1:${app.port}`;
+  const targets = [
+    { name: "A", url: base + "/fixtures/a" },
+    { name: "C", url: base + "/fixtures/c" },
+  ];
+  const engine = app.engine;
+  engine.rendererTimeoutMs = 400;
+  const freeze = async (lane) => {
+    await lane.page.evaluate(() => {
+      setTimeout(() => {
+        while (true) {
+          /* deliberately freeze a real renderer */
+        }
+      }, 0);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  };
+  try {
+    await engine.connect(targets);
+    const source = { role: "button", name: "Clear completed" };
+    const target = { role: "button", name: "Archive completed" };
+    await engine.setMappings([{ lane: 1, source, target }]);
+    const bounds = await engine.lanes[1].page
+      .getByRole("button", { name: target.name, exact: true })
+      .boundingBox();
+    const hit = await engine.hitTest({
+      lane: 1,
+      x: bounds.x + bounds.width / 2,
+      y: bounds.y + bounds.height / 2,
+    });
+    assert.deepEqual(hit, source);
+    const action = await engine.act({ kind: "click", target: hit });
+    assert.ok(action.lanes.every((l) => l.status === "matched"));
+    await engine.setMappings([
+      { lane: 1, source, target },
+      { lane: 1, source: { role: "button", name: "Another source" }, target },
+    ]);
+    await assert.rejects(
+      engine.hitTest({
+        lane: 1,
+        x: bounds.x + bounds.width / 2,
+        y: bounds.y + 2,
+      }),
+      /multiple source/,
+    );
+    const stuck = engine.lanes[0];
+    await freeze(stuck);
+    const start = Date.now();
+    await assert.rejects(
+      engine.exclusive(() => engine.hitTest({ lane: 0, x: 10, y: 10 })),
+    );
+    assert.ok(Date.now() - start < 3000);
+    assert.equal(stuck.page.isClosed(), true);
+    assert.equal(engine.busy, false);
+    await engine.reset();
+    await freeze(engine.lanes[0]);
+    const result = await engine.act({
+      kind: "click",
+      target: { role: "button", name: "Add task" },
+    });
+    assert.equal(engine.lanes[0].page.isClosed(), true);
+    assert.equal(result.lanes[0].status, "error");
+    assert.equal(result.lanes[1].status, "matched");
+    assert.equal(engine.busy, false);
+    await engine.reset();
+    await freeze(engine.lanes[0]);
+    const snapshot = await engine.exclusive(() => engine.snapshot());
+    assert.equal(snapshot.lanes[0].status, "error");
+    assert.equal(engine.lanes[0].page.isClosed(), true);
+    await engine.reset();
+    assert.equal(engine.lanes.length, 2);
+    await freeze(engine.lanes[0]);
+    const resized = await engine.resize("mobile");
+    assert.equal(resized.dimensions.width, 390);
+    assert.equal(engine.lanes[0].page.isClosed(), true);
+    assert.equal(engine.busy, false);
+    await engine.reset();
+  } finally {
+    await app.close();
+  }
+});

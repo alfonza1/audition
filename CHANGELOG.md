@@ -2,6 +2,9 @@
 
 ## 0.2.0
 
+- Bound renderer operations and close frozen contexts before releasing session locks.
+- Resolve mapped screenshot clicks back to source controls; reject ambiguous inverse mappings.
+
 - Explicit per-preview semantic control mappings, preserved across reset and included in review evidence.
 - Opt-in local review drafts with restore and deletion; restore revalidates URLs and mapping limits.
 - Transactional reconnect keeps the working session on navigation failure; crashed Chromium can be relaunched through reset.

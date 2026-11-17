@@ -86,7 +86,8 @@ function discoverControls(point) {
 }
 
 export class AuditionEngine {
-  constructor(port) {
+  constructor(port, { rendererTimeoutMs = 5000 } = {}) {
+    this.rendererTimeoutMs = rendererTimeoutMs;
     this.port = port;
     this.lanes = [];
     this.events = [];
@@ -186,20 +187,48 @@ export class AuditionEngine {
     await this.browser?.close();
     this.browser = null;
   }
+  async rendererOperation(lane, operation) {
+    if (lane.page.isClosed())
+      throw new Error("Preview closed. Reset browsers to recover.");
+    let timer;
+    let termination;
+    const deadline = new Promise((_, reject) => {
+      timer = setTimeout(async () => {
+        // Terminate the entire context before unlocking: late actions must not run.
+        termination = lane.context.close().catch(() => {});
+        await termination;
+        reject(
+          new Error(
+            "Preview timed out and was closed. Reset browsers to recover.",
+          ),
+        );
+      }, this.rendererTimeoutMs);
+    });
+    try {
+      return await Promise.race([operation(), deadline]);
+    } finally {
+      clearTimeout(timer);
+      if (termination) await termination;
+    }
+  }
   async snapshot() {
     const lanes = await Promise.all(
       this.lanes.map(async (lane, index) => {
         try {
-          const [shot, controls, title] = await Promise.all([
-            lane.page.screenshot({
-              type: "jpeg",
-              quality: 65,
-              animations: "disabled",
-              timeout: 5000,
-            }),
-            lane.page.evaluate(discoverControls),
-            lane.page.title(),
-          ]);
+          const [shot, controls, title] = await this.rendererOperation(
+            lane,
+            () =>
+              Promise.all([
+                lane.page.screenshot({
+                  type: "jpeg",
+                  quality: 65,
+                  animations: "disabled",
+                  timeout: 0,
+                }),
+                lane.page.evaluate(discoverControls),
+                lane.page.title(),
+              ]),
+          );
           return {
             id: index,
             name: lane.name,
@@ -247,15 +276,24 @@ export class AuditionEngine {
       y > VIEWPORTS[this.viewport].height
     )
       throw new Error("Click inside a connected preview.");
-    const targets = await this.lanes[lane].page.evaluate(discoverControls, {
-      x,
-      y,
-    });
+    const targets = await this.rendererOperation(this.lanes[lane], () =>
+      this.lanes[lane].page.evaluate(discoverControls, { x, y }),
+    );
     if (!targets[0])
       throw new Error(
         "No supported named control here. Use the action composer or add an accessible label in your app.",
       );
-    return targets[0];
+    const inverse = this.mappings.filter(
+      (m) =>
+        m.lane === lane &&
+        m.target.role === targets[0].role &&
+        m.target.name === targets[0].name,
+    );
+    if (inverse.length > 1)
+      throw new Error(
+        "This control maps to multiple source controls. Choose the intended source in the action composer.",
+      );
+    return inverse[0]?.source || targets[0];
   }
   async act(raw) {
     const action = validateAction(raw);
@@ -271,27 +309,29 @@ export class AuditionEngine {
           );
           const target = mapped?.target || action.target;
           try {
-            if (action.kind === "scroll")
-              await lane.page.mouse.wheel(0, action.direction * 500);
-            else if (action.kind === "press")
-              await lane.page.keyboard.press(action.value);
-            else {
-              const locator = lane.page.getByRole(target.role, {
-                name: target.name,
-                exact: true,
-              });
-              const count = await locator.count();
-              if (count !== 1)
-                throw new Error(
-                  count
-                    ? `${count} matching controls; add unique accessible names.`
-                    : `No ${target.role} named “${target.name}”.`,
-                );
-              if (action.kind === "fill") await locator.fill(action.value);
-              else if (action.kind === "select")
-                await locator.selectOption({ label: action.value });
-              else await locator.click();
-            }
+            await this.rendererOperation(lane, async () => {
+              if (action.kind === "scroll")
+                await lane.page.mouse.wheel(0, action.direction * 500);
+              else if (action.kind === "press")
+                await lane.page.keyboard.press(action.value);
+              else {
+                const locator = lane.page.getByRole(target.role, {
+                  name: target.name,
+                  exact: true,
+                });
+                const count = await locator.count();
+                if (count !== 1)
+                  throw new Error(
+                    count
+                      ? `${count} matching controls; add unique accessible names.`
+                      : `No ${target.role} named “${target.name}”.`,
+                  );
+                if (action.kind === "fill") await locator.fill(action.value);
+                else if (action.kind === "select")
+                  await locator.selectOption({ label: action.value });
+                else await locator.click();
+              }
+            });
             lane.status = "matched";
             lane.detail = "Action applied";
           } catch (error) {
@@ -322,8 +362,12 @@ export class AuditionEngine {
       throw new Error("Choose desktop or mobile.");
     return this.exclusive(async () => {
       this.viewport = viewport;
-      await Promise.all(
-        this.lanes.map((l) => l.page.setViewportSize(VIEWPORTS[viewport])),
+      await Promise.allSettled(
+        this.lanes.map((l) =>
+          this.rendererOperation(l, () =>
+            l.page.setViewportSize(VIEWPORTS[viewport]),
+          ),
+        ),
       );
       return this.snapshot();
     });

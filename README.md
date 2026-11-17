@@ -42,7 +42,7 @@ Start each branch's dev server on a different port, then connect their URLs in A
 <button>Add task</button>
 ```
 
-The matching key is an exact **role + accessible name**. One match is required. Zero matches or duplicate names are reported, never silently replaced with coordinate clicks on other apps. You can also click a named control inside any screenshot: Audition discovers its semantic target and applies it across the previews. Clicking an input selects it for the text composer.
+The matching key is an exact **role + accessible name**. One match is required. Zero matches or duplicate names are reported, never silently replaced with coordinate clicks on other apps. You can also click a named control inside any screenshot: Audition discovers its semantic target and applies it across the previews. Clicking an input selects it for the text composer. Clicking a mapped control resolves back to its source action; ambiguous inverse mappings require choosing the source in the composer.
 
 App navigation through matched links works within supported localhost origins. Each preview has independent cookies and local storage; existing browser profiles and sign-in sessions are never used.
 
@@ -62,7 +62,7 @@ Select **button · Clear completed**, open **Control mappings**, and set Tasklin
 
 **Save draft** stores the connected URLs, notes, selected variant and mappings in this browser's local storage. **Restore draft** validates the URLs and mappings again, opens fresh browser contexts, and restores the review notes. It does not replay actions, restore cookies or recover database state. **Forget draft** removes the saved copy. Drafts are opt-in and contain local URLs/notes, but never the typed action journal. They persist across server restarts when the controller URL/port stays the same.
 
-A failed connection preserves the current working previews and journal. A disconnected Chromium process can be recovered with **Reset browsers**. Concurrent requests return HTTP 409 instead of interleaving mutations; refresh a second tab after the active action finishes.
+A failed connection preserves the current working previews and journal. A disconnected Chromium process can be recovered with **Reset browsers**. Renderer operations have a five-second deadline; unresponsive preview contexts are closed before control is released so delayed actions cannot execute later. Reset recreates those contexts. Concurrent requests return HTTP 409 instead of interleaving mutations; refresh a second tab after the active action finishes.
 
 ## Deliberate boundaries
 
