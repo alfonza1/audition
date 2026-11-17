@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 import { startServer } from "../server/index.mjs";
 
@@ -279,6 +279,57 @@ test("desktop and mobile product flow, accessible controls and export", async ()
       (await downloadPromise).suggestedFilename(),
       "audition-review.json",
     );
+    const publicDownload = page.waitForEvent("download");
+    await page
+      .getByRole("button", { name: "Export visual review", exact: true })
+      .click();
+    const publicFile = await publicDownload;
+    assert.equal(publicFile.suggestedFilename(), "audition-review.html");
+    const publicHtml = await readFile(await publicFile.path(), "utf8");
+    assert.doesNotMatch(
+      publicHtml,
+      /Fieldnotes|localhost|127\.0\.0\.1|Keep the first layout/,
+    );
+    await page.getByLabel("Include private content in visual review").check();
+    const privateDownload = page.waitForEvent("download");
+    await page
+      .getByRole("button", { name: "Export visual review", exact: true })
+      .click();
+    const privateFile = await privateDownload;
+    const privateHtml = await readFile(await privateFile.path(), "utf8");
+    assert.match(privateHtml, /data:image\/jpeg;base64/);
+    assert.match(privateHtml, /Keep the first layout/);
+    await writeFile(
+      "site/example-review.html",
+      privateHtml.replaceAll(`127.0.0.1:${app.port}`, "localhost:4321"),
+    );
+    const exported = await browser.newPage();
+    const requests = [];
+    exported.on("request", (request) => requests.push(request.url()));
+    await exported.setContent(privateHtml);
+    assert.equal(await exported.locator("img").count(), 3);
+    assert.equal(await exported.locator("script").count(), 0);
+    assert.equal(await exported.locator("tbody tr").count(), 1);
+    assert.equal(
+      await exported
+        .locator("img")
+        .first()
+        .evaluate((img) => img.naturalWidth > 0),
+      true,
+    );
+    await exported.screenshot({
+      path: "docs/images/visual-review.png",
+      fullPage: true,
+    });
+    await exported.setViewportSize({ width: 390, height: 844 });
+    assert.equal(
+      await exported.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      true,
+    );
+    assert.deepEqual(requests, []);
+    await exported.close();
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole("button", { name: "Mobile", exact: true }).click();
     await page.waitForFunction(() => !document.querySelector(".busy"));

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
+import { visualReviewHtml } from "./visual-review";
 
 type Control = { role: string; name: string; disabled?: boolean };
 type Mapping = { lane: number; source: Control; target: Control };
@@ -45,10 +46,8 @@ async function api<T>(path: string, data?: unknown): Promise<T> {
   if (!response.ok) throw new Error(result.error || "The request failed.");
   return result as T;
 }
-function download(name: string, text: string) {
-  const url = URL.createObjectURL(
-    new Blob([text], { type: "application/json" }),
-  );
+function download(name: string, text: string, type = "application/json") {
+  const url = URL.createObjectURL(new Blob([text], { type }));
   const link = document.createElement("a");
   link.href = url;
   link.download = name;
@@ -69,6 +68,7 @@ function App() {
   const [selected, setSelected] = useState<Control | null>(null),
     [text, setText] = useState(""),
     [feedback, setFeedback] = useState("");
+  const [privateExport, setPrivateExport] = useState(false);
   const [winner, setWinner] = useState<number | null>(null);
   useEffect(() => {
     let mounted = true;
@@ -233,6 +233,26 @@ function App() {
       );
     });
   }
+  function visualReport() {
+    void run(async () => {
+      const current = await api<Session>("session");
+      setSession(current);
+      download(
+        "audition-review.html",
+        visualReviewHtml(current, {
+          privateContent: privateExport,
+          winner,
+          feedback,
+        }),
+        "text/html",
+      );
+      setNotice(
+        privateExport
+          ? "Visual review saved with private content. Inspect the file before sharing."
+          : "Visual review saved. Private content was omitted.",
+      );
+    });
+  }
   function report() {
     void run(async () => {
       const data = await api<Record<string, unknown>>("report");
@@ -263,7 +283,7 @@ function App() {
             <i />
             <i />
           </span>
-          audition<span className="version">0.2</span>
+          audition<span className="version">0.3</span>
         </a>
         <div className="masthead-right">
           <span className="local-indicator">Local workspace</span>
@@ -787,9 +807,28 @@ function App() {
                   placeholder="Keep A’s density, B’s clear feedback, and fix the missing action in C…"
                 />
                 <p>
-                  Export your selection, feedback, and action outcomes as a
-                  portable JSON review.
+                  Send a standalone review anyone can open. JSON export keeps
+                  the full action record.
                 </p>
+                <label className="export-consent">
+                  <input
+                    type="checkbox"
+                    checked={privateExport}
+                    onChange={(e) => setPrivateExport(e.target.checked)}
+                  />
+                  Include private content in visual review
+                </label>
+                <p>
+                  Screenshots, local URLs, names, typed values and notes stay
+                  out unless you opt in. Review the file before sharing.
+                </p>
+                <button
+                  className="primary"
+                  disabled={busy}
+                  onClick={visualReport}
+                >
+                  Export visual review
+                </button>
               </section>
             </div>
           </>
@@ -814,11 +853,6 @@ function App() {
             >
               Open the live demo →
             </button>
-            <div className="empty-capabilities">
-              <span>Semantic actions</span>
-              <span>Mobile comparison</span>
-              <span>Honest mismatch reporting</span>
-            </div>
           </section>
         )}
       </main>
